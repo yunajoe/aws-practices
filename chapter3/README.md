@@ -1,102 +1,33 @@
-## CloudFormation으로 Iam user 생성하기
+## AWS를 잘 쓰려면 알아야 하는 기본 서비스
 
-- IAM_USER.yml 파일을 이용하여 CloudFormation 스택을 생성하여 i am user를 생성해보자
-  ![alt text](image.png)
+### 1. AWS에서 동작하는 웹 서비스 구조와 원리 파악하기
 
-![alt text](image-1.png)
+- AWS IAM: 사용자 및 AWS 리소스에 대한 엑세스를 제어하는 권한 관리 서비스
+- 아마존 EC2: AWS에서 제공하는 가상 클라우드 서버
+- 아마존 RDS: 다양한 데이터베이스 엔진을 제공하는 관계형 데이터베이스
+- 아마존 S3: 객체(파일 및 데이터)를 저장하는 객체 스토리지 서비스
 
-![alt text](image-2.png)
+### 2. AWS I AM
 
-![alt text](image-3.png)
+AWS I AM을 구성하는 서비스는 크게 4가지로 나뉜다.
 
-![alt text](image-4.png)
+- IAM 사용자: 개별적으로 식별되는 사용자를 의미하며, AWS 리소스에 접근하는 자격증명을 보유하고 있습니다.
+- IAM 그룹: IAM사용자를 그룹으로 묶어서 정리하는 서비스 입니다.
+- IAM 정책: 어떤 사용자 혹은 리소스에 대해 어떤 작업이 허용되는지를 정의하는 서비스 입니다.
+- IAM 역할: IAM 정책을 담고 있으며, AWS 서비스에 권한을 부여하는 데 사용되는 서비스 입니다.
 
-![alt text](image-5.png)
+### 3. 요약
 
-## AWS CLI 환경 구성하기
+- AWS의 웹 서비스 구조는 기본적으로 클라우드 기반으로 구축되면 AWS IAM, 아마존 EC2, 아마존 RDS, 아마존 S3와 같은 핵심 서비스를 이용하여 웹 서비스를 구성하고 운영합니다.
 
-- 루트 사용자를 이용해 AWS CLI환경 구성하기
+- AWS IAM은 AWS 계정 내에서 사용자와 그룹 또는 리소스에 대한 권한을 중앙 집중적을 관리합니다.
 
-1. AWS CLI 파일 다운로드 및 설치
+- AWS를 이용하는 사용자는 루트 사용자와 IAM 사용자로 나눌 수 있습니다. 루트 사용자는 모든 사용자의 최상위 계층에 위치하며 AWS의 모든 작업을 수행할 수 있는 관리자 권한을 가지고 있습니다.
 
-```bash
-# 설치 파일을 다운로드
-curl "https://awscli.amazonaws.com/AWSCLIV2.pkg" -o "AWSCLIV2.pkg"
-# 다운로드한 패키지를 시스템에 설치
-sudo installer -pkg ./AWSCLIV2.pkg -target /
-# 버전 확인
-aws --version
-
-```
-
-2. IAM USER(S3권한만 부여)를 생성
-
-- AWS 시크릿 관리자 콘솔 화면에서 액세스 키와 시크릿 키를 확인한다.
-
-3. AWS 자격 증명(Credentials) 설정
-
-- IAM 사용자(S3 권한 부여 등) 생성 후 발급받은 액세스 키와 시크릿 키를 등록합니다.
-
-```bash
-yunajoe@yunajoeui-MacBookPro ~ % aws configure list
-NAME       | VALUE                 | TYPE          | LOCATION
-profile    | <not set>             | None          | None
-access_key | <not set>             | None          | None
-secret_key | <not set>             | None          | None
-region     | <not set>             | None          | None
-
-# 설정 진행
-AWS Access Key ID [None]: ************************
-AWS Secret Access Key [None]:  ************************
-Default region name [None]: ap-northeast-2
-Default output format [None]: json
-
-Configure AWS skills and the AWS MCP server for your AI coding agent(s)? [y/n/never]: n
+- 보안을 위해 관리자 권한을 가진 루트 사용자를 직접 사용하기 보다는 최소한의 필요한 권한만 부여된 IAM 사용자 사용을 권장합니다.
 
 ```
-
-```bash
-# 설정 완료 후 확인
-yunajoe@yunajoeui-MacBookPro ~ % aws configure list
-NAME       | VALUE                 | TYPE                    | LOCATION
-profile    | <not set>             | None                    | None
-access_key | ********************  | shared-credentials-file |
-secret_key | ********************  | shared-credentials-file |
-region     | ap-northeast-2        | config-file             | ~/.aws/config
+- IAM 그룹을 사용하여 같은 권한을 가진 사용자를 묶어 관리 할 수 있습니다.
+- IAM 정책을 사용하며 IAM 그룹 그리고 리소스에 부여할 권한을 정의할 수 있습니다.
 
 ```
-
-4. 가상 MFA 디바이스 생성 및 활성화
-
-- 터미널에서 가상 MFA 디바이스를 생성하고 QR코드 이미지를 바탕화면에 저장합니다.
-
-```bash
-
-yunajoe@yunajoeui-MacBookPro ~ % aws iam create-virtual-mfa-device \
-  --virtual-mfa-device-name yunajoe-mfa \
-  --bootstrap-method QRCodePNG \
-  --outfile ~/Desktop/QRCode.png
-```
-
-```json
-{
-  "VirtualMFADevice": {
-    "SerialNumber": "arn:aws:iam::***********:mfa/yunajoe-mfa"
-  }
-}
-```
-
-5. MFA 활성화 (인증 코드 입력)
-
-- 스마트폰 인증 앱(Google Authenticator 등)으로 다운로드한 QR코드를 스캔한 뒤, 연속으로 생성되는 6자리 숫자 두 개를 입력하여 MFA를 활성화
-
-```bash
-
-yunajoe@yunajoeui-MacBookPro ~ % aws iam enable-mfa-device \
-  --user-name iam-yuna \
-  --serial-number arn:aws:iam::***********:mfa/yunajoe-mfa \
-  --authentication-code1 ****** \
-  --authentication-code2 ******
-```
-
-6. IAM USER로 로그인하여 MFA 설정되어 있나 확인
